@@ -25,11 +25,27 @@ returns a `{job_id0: RunLog, job_id1: RunLog, ...}` mapping for all jobs.
 See `template.env` for git repo. settings etc.
 """
 
+import hashlib
 import os
 import subprocess
+from datetime import datetime
 from pathlib import Path
+from typing import NamedTuple
 
 from dotenv import load_dotenv
+
+GIT_JOB_LOG_DATA_DIR = ".git_job_log"
+GIT_JOB_LOG_RUN_FILE = "RUN"
+
+
+JobType = str
+
+
+class LastRun(NamedTuple):
+    """Last run information for a job."""
+
+    timestamp: datetime | None
+    data: str | dict | None
 
 
 class GitJobLog:
@@ -37,12 +53,13 @@ class GitJobLog:
 
     def __init__(
         self,
-        repo: Path | None = None,  # repo. URL +/- token or None for auto-discovery
+        remote: Path | None = None,  # repo. URL +/- token or None for auto-discovery
     ):
         """Bind to a repository."""
-        if repo is None:
-            repo = self._find_url()
-        self.repo = repo
+        if remote is None:
+            remote = self._find_url()
+        self.remote = remote
+        self.local = self.get_or_create_local()
 
     @staticmethod
     def _find_url() -> Path:
@@ -68,3 +85,26 @@ class GitJobLog:
         if proc.stderr:
             print(proc.stderr.decode("utf8"))
         return proc.stdout.decode("utf8")
+
+    def local_path(self) -> Path:
+        subpath = hashlib.sha256(str(self.remote).encode("utf8")).hexdigest()
+        return Path(f"~/{GIT_JOB_LOG_DATA_DIR}/repos/{subpath}").expanduser().resolve()
+
+    def get_or_create_local(self) -> Path:
+        self.local = self.local_path()
+        if not self.local.exists():
+            self.local.mkdir(parents=True, exist_ok=True)
+            self._do_cmd(["git", "-C", self.local, "init"])
+        return self.local
+
+    def log_run(self, job: JobType, data: dict | str | None = None) -> None:
+        if data is None:
+            data = ""
+        job = job.strip("/")
+        (self.local / job).mkdir(parents=True, exist_ok=True)
+        (self.local / job / GIT_JOB_LOG_RUN_FILE).write_text(data)
+
+    def last_run(self, job: JobType) -> LastRun:
+        """LastRun info. for this job."""
+        if not (self.local / job).exists():
+            return LastRun(timestamp=None, data=None)
