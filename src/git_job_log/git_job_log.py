@@ -81,7 +81,7 @@ class GitJobLog:
             cmd = cmd.split()
         if not silent:
             print(cmd)
-        proc = subprocess.run(cmd, capture_output=True, check=True)  # noqa:S603
+        proc = subprocess.run(cmd, capture_output=True, check=False)  # noqa:S603
         if proc.stderr:
             print(proc.stderr.decode("utf8"))
         return proc.stdout.decode("utf8")
@@ -94,17 +94,45 @@ class GitJobLog:
         self.local = self.local_path()
         if not self.local.exists():
             self.local.mkdir(parents=True, exist_ok=True)
-            self._do_cmd(["git", "-C", self.local, "init"])
+            self._do_cmd(["git", "clone", self.remote, self.local])
+            self._do_cmd(["git", "-C", self.local, "checkout", "-b", "main"])
+            self._do_cmd(["git", "-C", self.local, "checkout", "main"])
         return self.local
 
     def log_run(self, job: JobType, data: dict | str | None = None) -> None:
+        self._do_cmd(["git", "-C", self.local, "pull"])
         if data is None:
             data = ""
         job = job.strip("/")
         (self.local / job).mkdir(parents=True, exist_ok=True)
-        (self.local / job / GIT_JOB_LOG_RUN_FILE).write_text(data)
+        job_file = self.local / job / GIT_JOB_LOG_RUN_FILE
+        job_file.write_text(data)
+        self._do_cmd(["git", "-C", self.local, "add", "-A"])
+        self._do_cmd(["git", "-C", self.local, "commit", "-m", f"{job} run"])
+        self._do_cmd(["git", "-C", self.local, "push", "--set-upstream", "origin", "main"])
 
-    def last_run(self, job: JobType) -> LastRun:
+    def last_ran(self, job: JobType) -> LastRun:
         """LastRun info. for this job."""
-        if not (self.local / job).exists():
+        self._do_cmd(["git", "-C", self.local, "pull"])
+        job_file = (self.local / job / GIT_JOB_LOG_RUN_FILE)
+        if not job_file.exists():
             return LastRun(timestamp=None, data=None)
+        last = self._do_cmd(
+            [
+                "git",
+                "-C",
+                self.local,
+                "--no-pager",
+                "log",
+                "-1",
+                "--format='%cI'",
+                job_file,
+            ]
+        )
+        print(last)
+        return LastRun(timestamp=None, data=job_file.read_text())
+
+    def last_runs(self) -> dict:
+        """
+        git ls-tree -r --name-only HEAD | xargs -IF git --no-pager log -1 --format='%cI F' F
+        """
