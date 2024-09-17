@@ -24,17 +24,29 @@ def test_log_run(random_remote):
     gjl = GitJobLog(random_remote)
     subpath = hashlib.sha256(str(random_remote).encode("utf8")).hexdigest()
     job = subpath
-    assert not (gjl.local / subpath / GIT_JOB_LOG_RUN_FILE).exists()
+    job_file = gjl.local / subpath / GIT_JOB_LOG_RUN_FILE
+    assert not job_file.exists()
     gjl.log_run(job)
-    assert (gjl.local / subpath / GIT_JOB_LOG_RUN_FILE).exists()
+    assert job_file.exists()
 
 
-@pytest.mark.parametrize("what", [None, "this text", {"info": 42}])
-def test_last_run(random_remote, what):
+@pytest.mark.parametrize("what", [None, "", "this text", {"info": 42}])
+def test_last_ran(random_remote, what):
     gjl = GitJobLog(random_remote)
     subpath = hashlib.sha256(str(random_remote).encode("utf8")).hexdigest()
     job = subpath
     gjl.log_run(job, what)
-    assert gjl.last_ran(job).data == (what or "")
+    job_file = gjl.local / subpath / GIT_JOB_LOG_RUN_FILE
+    assert gjl.last_ran(job).data == (what or ""), job_file.read_text()
+
+    shutil.rmtree(gjl.local)
+
+def test_last_runs(random_remote):
+    gjl = GitJobLog(random_remote)
+    jobs = "1/2", "2/3", "2/3/4"
+    for job in jobs:
+        gjl.log_run(job)
+    job_ran = gjl.last_runs()
+    assert set(job_ran) == set(jobs)
 
     shutil.rmtree(gjl.local)

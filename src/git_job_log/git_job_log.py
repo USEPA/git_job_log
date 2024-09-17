@@ -28,10 +28,13 @@ See `template.env` for git repo. settings etc.
 import hashlib
 import os
 import subprocess
+import time
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 from typing import NamedTuple
 
+import yaml
 from dotenv import load_dotenv
 
 GIT_JOB_LOG_DATA_DIR = ".git_job_log"
@@ -86,6 +89,9 @@ class GitJobLog:
             print(proc.stderr.decode("utf8"))
         return proc.stdout.decode("utf8")
 
+    def pull(self) -> None:
+        self._do_cmd(["git", "-C", self.local, "pull"])
+
     def local_path(self) -> Path:
         subpath = hashlib.sha256(str(self.remote).encode("utf8")).hexdigest()
         return Path(f"~/{GIT_JOB_LOG_DATA_DIR}/repos/{subpath}").expanduser().resolve()
@@ -100,21 +106,29 @@ class GitJobLog:
         return self.local
 
     def log_run(self, job: JobType, data: dict | str | None = None) -> None:
-        self._do_cmd(["git", "-C", self.local, "pull"])
+        self.pull()
         if data is None:
             data = ""
+        if not isinstance(data, str):
+            try:
+                data = yaml.safe_dump(data)
+            except yaml.representer.RepresenterError:
+                data = str(data)
         job = job.strip("/")
         (self.local / job).mkdir(parents=True, exist_ok=True)
         job_file = self.local / job / GIT_JOB_LOG_RUN_FILE
         job_file.write_text(data)
         self._do_cmd(["git", "-C", self.local, "add", "-A"])
         self._do_cmd(["git", "-C", self.local, "commit", "-m", f"{job} run"])
-        self._do_cmd(["git", "-C", self.local, "push", "--set-upstream", "origin", "main"])
+        self._do_cmd(
+            ["git", "-C", self.local, "push", "--set-upstream", "origin", "main"]
+        )
 
-    def last_ran(self, job: JobType) -> LastRun:
+    def last_ran(self, job: JobType, batch=False) -> LastRun:
         """LastRun info. for this job."""
-        self._do_cmd(["git", "-C", self.local, "pull"])
-        job_file = (self.local / job / GIT_JOB_LOG_RUN_FILE)
+        if not batch:
+            self.pull()
+        job_file = self.local / job / GIT_JOB_LOG_RUN_FILE
         if not job_file.exists():
             return LastRun(timestamp=None, data=None)
         last = self._do_cmd(
@@ -129,10 +143,24 @@ class GitJobLog:
                 job_file,
             ]
         )
-        print(last)
-        return LastRun(timestamp=None, data=job_file.read_text())
+
+        data = job_file.read_text()
+        try:
+            if data.strip():  # Don't change ""
+                data = yaml.safe_load(data)
+        except yaml.scanner.ScannerError:
+            pass
+
+        return LastRun(timestamp=None, data=data)
 
     def last_runs(self) -> dict:
         """
-        git ls-tree -r --name-only HEAD | xargs -IF git --no-pager log -1 --format='%cI F' F
+        git ls-tree -r --name-only HEAD | \
+            xargs -IF git --no-pager log -1 --format='%cI F' F
         """
+        self.pull()
+        file_list = self._do_cmd(
+            ["git", "-C", self.local, "ls-tree", "-r", "--name-only", "HEAD"]
+        ).split("\n")
+        file_list = [i.rsplit("/", 1)[0] for i in file_list if i.strip()]
+        return {job: self.last_ran(job, batch=True) for job in file_list}

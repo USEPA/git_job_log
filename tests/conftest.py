@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def random_remote(tmp_path: Path) -> Path:
     """Path to an initialized test remote repo."""
     cmd = ["git", "-C", tmp_path, "init", "--bare"]
