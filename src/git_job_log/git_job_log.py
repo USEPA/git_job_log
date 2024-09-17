@@ -3,26 +3,26 @@
 Jobs have hierarchical identifiers like "home/yard/lawn/mow", "home/yard/fence/paint",
 "work/commute/bus-pass/renew".
 
-    GitJobLog.log_run("home/yard/fence/paint")
+    GitJobLog.log_run(["home/yard/fence/paint"])
 
 creates a new commit of `<repo_path>/home/yard/fence/paint/RUN` which will be a zero
 byte file.
 
-    GitJobLog.log_run("home/yard/fence/paint", data)
+    GitJobLog.log_run(["home/yard/fence/paint"], data)
 
 will write the str(ing) or bytes `data` to `RUN`, or, if `data` is not str or bytes,
 the YAML representation of data.
 
-    GitJobLog.last_run("home/yard/fence/paint")
+    GitJobLog.last_ran("home/yard/fence/paint")
 
 will return a `GitJobLog.RunLog(last_run=datetime, data=str|obj)`, add `as_text=True`
 to prevent an attempt to YAML decode `data`.
 
-    GitJobLog.all_runs()
+    GitJobLog.last_runs()
 
 returns a `{job_id0: RunLog, job_id1: RunLog, ...}` mapping for all jobs.
 
-See `template.env` for git repo. settings etc.
+GIT_RUN_LOG_REPO needs to be set and can be set in .env
 """
 
 import hashlib
@@ -57,35 +57,41 @@ class GitJobLog:
     def __init__(
         self,
         remote: Path | None = None,  # repo. URL +/- token or None for auto-discovery
+        silent: bool = True,  # Don't report noisy git msg.s
     ):
         """Bind to a repository."""
+        self.silent = silent
+        if not self.silent:
+            print("IMPORTANT: git warnings below are typically OK / expected.")
         if remote is None:
             remote = self._find_url()
         self.remote = remote
         self.local = self.get_or_create_local()
 
     @staticmethod
-    def _find_url() -> Path:
+    def _find_url() -> str:
         """Find .env working up the file tree and read vars."""
+        repo = os.environ.get("GIT_JOB_LOG_REPO")
+        if repo and repo.strip():
+            return repo
         paths = [Path("."), *Path(".").parents]
         for path in paths:
             if (path / ".env").exists():
                 load_dotenv(path / ".env")
                 repo = os.environ.get("GIT_JOB_LOG_REPO")
                 if repo is not None:
-                    return Path(repo)
+                    return repo
                 break
 
-        raise Exception("Could not find .env file.")
+        raise Exception("Could not find .env file for GIT_JOB_LOG_REPO")
 
-    @staticmethod
-    def _do_cmd(cmd: str | list[str | Path], silent: bool = False) -> str:
+    def _do_cmd(self, cmd: str | list[str | Path]) -> str:
         if isinstance(cmd, str):
             cmd = cmd.split()
-        if not silent:
+        if not self.silent:
             print(cmd)
         proc = subprocess.run(cmd, capture_output=True, check=False)  # noqa:S603
-        if proc.stderr:
+        if proc.stderr and not self.silent:
             print(proc.stderr.decode("utf8"))
         return proc.stdout.decode("utf8")
 
@@ -105,21 +111,29 @@ class GitJobLog:
             self._do_cmd(["git", "-C", self.local, "checkout", "main"])
         return self.local
 
-    def log_run(self, job: JobType, data: dict | str | None = None) -> None:
+    def log_run(self, jobs: list[JobType], data: dict | str | None = None) -> None:
         self.pull()
+        updated = datetime.now()
         if data is None:
             data = ""
-        if not isinstance(data, str):
+        if not isinstance(data, (bytes, str)):
             try:
                 data = yaml.safe_dump(data)
             except yaml.representer.RepresenterError:
                 data = str(data)
-        job = job.strip("/")
-        (self.local / job).mkdir(parents=True, exist_ok=True)
-        job_file = self.local / job / GIT_JOB_LOG_RUN_FILE
-        job_file.write_text(data)
+        for job in jobs:
+            job = job.strip("/")
+            (self.local / job).mkdir(parents=True, exist_ok=True)
+            job_file = self.local / job / GIT_JOB_LOG_RUN_FILE
+            use_data = data
+            if job_file.exists() and job_file.read_text() == data:
+                # Append this to make the file different, git supports empty commits but
+                # not associating unchanged files with them.
+                use_data += f"### UPDATED: {updated}"
+            job_file.write_text(use_data)
         self._do_cmd(["git", "-C", self.local, "add", "-A"])
-        self._do_cmd(["git", "-C", self.local, "commit", "-m", f"{job} run"])
+        job_list = ", ".join(jobs)
+        self._do_cmd(["git", "-C", self.local, "commit", "-m", f"ran: {job_list}"])
         self._do_cmd(
             ["git", "-C", self.local, "push", "--set-upstream", "origin", "main"]
         )
