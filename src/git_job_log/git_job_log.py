@@ -139,10 +139,10 @@ class GitJobLog:
                 "--no-pager",
                 "log",
                 "-1",
-                "--format='%cI'",
+                "--format=%cI",
                 job_file,
             ]
-        )
+        ).strip()
 
         data = job_file.read_text()
         try:
@@ -151,7 +151,7 @@ class GitJobLog:
         except yaml.scanner.ScannerError:
             pass
 
-        return LastRun(timestamp=last, data=data)
+        return LastRun(timestamp=datetime.fromisoformat(last), data=data)
 
     def last_runs(self) -> dict:
         """

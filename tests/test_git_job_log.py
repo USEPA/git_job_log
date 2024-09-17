@@ -30,6 +30,8 @@ def test_log_run(random_remote):
     gjl.log_run(job)
     assert job_file.exists()
 
+    shutil.rmtree(gjl.local)
+
 
 @pytest.mark.parametrize("what", [None, "", "this text", {"info": 42}])
 def test_last_ran(random_remote, what):
@@ -45,16 +47,17 @@ def test_last_ran(random_remote, what):
 def test_last_runs(random_remote):
     gjl = GitJobLog(random_remote)
     jobs = "1/2", "2/3", "2/3/4"
+    sleep = 0
     for job in jobs:
+        time.sleep(sleep)
+        sleep = 2
         gjl.log_run(job)
-        time.sleep(2)
     job_ran = gjl.last_runs()
-    print('XXXXXX', job_ran)
 
     assert set(job_ran) == set(jobs)
     first = min(i.timestamp for i in job_ran.values())
     last = max(i.timestamp for i in job_ran.values())
-    (last-first).total_seconds() > 6
-    (last-first).total_seconds() < 7
+    assert (last-first).total_seconds() >= 4
+    assert (last-first).total_seconds() < 5
 
     shutil.rmtree(gjl.local)
