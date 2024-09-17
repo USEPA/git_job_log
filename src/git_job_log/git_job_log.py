@@ -151,7 +151,7 @@ class GitJobLog:
         except yaml.scanner.ScannerError:
             pass
 
-        return LastRun(timestamp=None, data=data)
+        return LastRun(timestamp=last, data=data)
 
     def last_runs(self) -> dict:
         """

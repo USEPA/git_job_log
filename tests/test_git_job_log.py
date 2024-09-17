@@ -2,6 +2,7 @@
 
 import hashlib
 import shutil
+import time
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,14 @@ def test_last_runs(random_remote):
     jobs = "1/2", "2/3", "2/3/4"
     for job in jobs:
         gjl.log_run(job)
+        time.sleep(2)
     job_ran = gjl.last_runs()
+    print('XXXXXX', job_ran)
+
     assert set(job_ran) == set(jobs)
+    first = min(i.timestamp for i in job_ran.values())
+    last = max(i.timestamp for i in job_ran.values())
+    (last-first).total_seconds() > 6
+    (last-first).total_seconds() < 7
 
     shutil.rmtree(gjl.local)
