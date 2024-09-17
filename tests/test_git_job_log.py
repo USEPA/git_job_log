@@ -13,6 +13,7 @@ from git_job_log.git_job_log import GIT_JOB_LOG_RUN_FILE
 
 
 def test_local_path(random_remote):
+    """Test creation of local checkout."""
     subpath = hashlib.sha256(str(random_remote).encode("utf8")).hexdigest()
     path = Path(f"~/.git_job_log/repos/{subpath}").expanduser().resolve()
     assert not path.exists()
@@ -23,10 +24,10 @@ def test_local_path(random_remote):
 
 
 def test_log_run(random_remote):
+    "Test logging a run."
     gjl = GitJobLog(random_remote)
-    subpath = hashlib.sha256(str(random_remote).encode("utf8")).hexdigest()
-    job = subpath
-    job_file = gjl.local / subpath / GIT_JOB_LOG_RUN_FILE
+    job = "a/job"
+    job_file = gjl.local / job / GIT_JOB_LOG_RUN_FILE
     assert not job_file.exists()
     gjl.log_run([job])
     assert job_file.exists()

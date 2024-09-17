@@ -86,6 +86,7 @@ class GitJobLog:
         raise Exception("Could not find .env file for GIT_JOB_LOG_REPO")
 
     def _do_cmd(self, cmd: str | list[str | Path]) -> str:
+        """Run a command, show feedback if not supressed."""
         if isinstance(cmd, str):
             cmd = cmd.split()
         if not self.silent:
@@ -96,14 +97,17 @@ class GitJobLog:
         return proc.stdout.decode("utf8")
 
     def pull(self) -> None:
+        """Pull latest data."""
         self._do_cmd(["git", "-C", self.local, "pull"])
         self._do_cmd(["git", "-C", self.local, "reset", "--hard", "origin/main"])
 
     def local_path(self) -> Path:
+        """Path to local checkout of remote."""
         subpath = hashlib.sha256(str(self.remote).encode("utf8")).hexdigest()
         return Path(f"~/{GIT_JOB_LOG_DATA_DIR}/repos/{subpath}").expanduser().resolve()
 
     def get_or_create_local(self) -> Path:
+        """Create local checkout of remote if needed."""
         self.local = self.local_path()
         if not self.local.exists():
             self.local.mkdir(parents=True, exist_ok=True)
@@ -113,6 +117,7 @@ class GitJobLog:
         return self.local
 
     def log_run(self, jobs: list[JobType], data: dict | str | None = None) -> None:
+        """Log running of listed jobs."""
         self.pull()
         updated = datetime.now()
         if data is None:
@@ -185,6 +190,8 @@ class GitJobLog:
 
     def last_runs(self) -> dict:
         """
+        List last run time for all jobs.
+
         git ls-tree -r --name-only HEAD | \
             xargs -IF git --no-pager log -1 --format='%cI F' F
         """
