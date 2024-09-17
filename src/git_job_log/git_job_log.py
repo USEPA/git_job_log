@@ -97,6 +97,7 @@ class GitJobLog:
 
     def pull(self) -> None:
         self._do_cmd(["git", "-C", self.local, "pull"])
+        self._do_cmd(["git", "-C", self.local, "reset", "--hard", "origin/main"])
 
     def local_path(self) -> Path:
         subpath = hashlib.sha256(str(self.remote).encode("utf8")).hexdigest()
@@ -121,6 +122,7 @@ class GitJobLog:
                 data = yaml.safe_dump(data)
             except yaml.representer.RepresenterError:
                 data = str(data)
+        old_last_runs = self.last_runs()
         for job in jobs:
             job = job.strip("/")
             (self.local / job).mkdir(parents=True, exist_ok=True)
@@ -137,6 +139,20 @@ class GitJobLog:
         self._do_cmd(
             ["git", "-C", self.local, "push", "--set-upstream", "origin", "main"]
         )
+        last_runs = self.last_runs()
+        # Check new commits are in repo. - this is the core function so need to fail if not
+        errors = []
+        for job in jobs:
+            if job not in last_runs:
+                errors.append(f"MISSING: {job}")
+            else:
+                if (
+                    job in old_last_runs
+                    and last_runs[job].timestamp == old_last_runs[job].timestamp
+                ):
+                    errors.append(f"NO_UPDATE: {job}")
+        if errors:
+            raise Exception("LOGGING JOB(S) FAILED:\n" + "\n".join(errors))
 
     def last_ran(self, job: JobType, batch=False) -> LastRun:
         """LastRun info. for this job."""
