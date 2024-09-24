@@ -17,11 +17,30 @@ VERTICES = list(set(chain.from_iterable(DEPENDS)))
 
 def test_make_graph():
     graph = graph_jobs.make_graph(DEPENDS)
-    assert min(i[1] for i in graph.in_degree()) == 0
-    assert max(i[1] for i in graph.in_degree()) == 1
-    assert min(i[1] for i in graph.out_degree()) == 0
-    assert max(i[1] for i in graph.out_degree()) == 2
+    assert min(graph.in_degree()) == 0
+    assert max(graph.in_degree()) == 1
+    assert min(graph.out_degree()) == 0
+    assert max(graph.out_degree()) == 2
     assert len(graph) == len(VERTICES)
+
+
+def test_labels():
+    """Test label lengths."""
+    sixteen = [
+        len(i)
+        for i in chain.from_iterable(
+            graph_jobs.label(j, 16).split("\\n") for j in VERTICES
+        )
+    ]
+    twenty = [
+        len(i)
+        for i in chain.from_iterable(
+            graph_jobs.label(j, 20).split("\\n") for j in VERTICES
+        )
+    ]
+    assert max(sixteen) <= 17
+    assert max(twenty) <= 21
+    assert max(twenty) > 17
 
 
 def test_graph_jobs(random_remote):
