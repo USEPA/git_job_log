@@ -15,6 +15,8 @@ name = "git-job-log"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "igraph" },
+    { name = "pycairo" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
 ]
@@ -27,6 +29,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "igraph", specifier = ">=0.11.6" },
+    { name = "pycairo", specifier = ">=1.27.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "pyyaml", specifier = ">=6.0.2" },
 ]
@@ -35,6 +39,27 @@ requires-dist = [
 dev = [
     { name = "mypy", specifier = ">=1.11.2" },
     { name = "pytest", specifier = ">=8.3.3" },
+]
+
+[[package]]
+name = "igraph"
+version = "0.11.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "texttable" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5f/a0/1f70c34a96dcb0acf428319e83655e92ab2955d73a33f711852a5fb79681/igraph-0.11.6.tar.gz", hash = "sha256:837f233256c3319f2a35a6a80d94eafe47b43791ef4c6f9e9871061341ac8e28", size = 4559252 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/f5/2de2ff541a014c3387c0c570a91e51b80643d9a2a3e0dec8030bcec3083d/igraph-0.11.6-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:8aabef03d787b519d1075dfc0da4a1109fb113b941334883e3e7947ac30a459e", size = 1945799 },
+    { url = "https://files.pythonhosted.org/packages/e4/3b/5cf3b131d433dea61608ea2c27bebf74de9cc7a50ced0b26311d6288294e/igraph-0.11.6-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:1f2cc4a518d99cdf6cae514f85e93e56852bc8c325b3abb96037d1d690b5975f", size = 1751328 },
+    { url = "https://files.pythonhosted.org/packages/fc/71/71cd93c1b26e6051ef5dfad94333690188e663942e54bea6bbfff79d2dbe/igraph-0.11.6-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c1e859238be52ab8ccc614d18f9362942bc88ce543afc12548f81ae99b10801d", size = 2974608 },
+    { url = "https://files.pythonhosted.org/packages/19/ec/02e596595776367f5fd07c65a56ff1593680273f935c481975fe6a55e67f/igraph-0.11.6-cp39-abi3-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d61fbe5e85eb4ae9efe08c461f9bdeedb02a2b5739fbc223d324a71f40a28be2", size = 3054685 },
+    { url = "https://files.pythonhosted.org/packages/02/f2/70849b7ff0fbfd3e7c964ac737ea973d0121d30a32a18894df6d0843bd0c/igraph-0.11.6-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b6620ba39df29fd42151becf82309b54e57148233c9c3ef890eed62e25eed8a5", size = 3134936 },
+    { url = "https://files.pythonhosted.org/packages/ef/49/579f3a5daea1a672f05c95ead488e779f1479a8efb78715c1508f7dae58a/igraph-0.11.6-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:59666589bb3d07f310cda2c5106a8adeeb77c2ef27fecf1c6438b6091f4ca69d", size = 3887705 },
+    { url = "https://files.pythonhosted.org/packages/ef/d2/66203ba13f90ea77f541c0f5b5ae095a7ced0a564486f576e5adce0d0bd7/igraph-0.11.6-cp39-abi3-musllinux_1_2_i686.whl", hash = "sha256:8750b6d6caebf199cf7dc41c931f58e330153779707391e30f0a29f02666fb6e", size = 4158876 },
+    { url = "https://files.pythonhosted.org/packages/53/e7/3fbe83625efb1dd5f387a9da9ec0ac779a2dc42e6db0ac7eb54c44943b2f/igraph-0.11.6-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:967d6f2c30fe94317da15e459374d0fb8ca3e56020412f201ecd07dd5b5352f2", size = 4050715 },
+    { url = "https://files.pythonhosted.org/packages/ab/91/2535aa81a1de36f5b21df129b3434a18710d31ea56efbf0ec6e1f1958fda/igraph-0.11.6-cp39-abi3-win32.whl", hash = "sha256:9744f95a67319eb6cb487ceabf30f5d7940de34bada51f0ba63adbd23e0f94ad", size = 1589990 },
+    { url = "https://files.pythonhosted.org/packages/08/4a/e781867fa2fb41d823a8f1978ac464aef3d78bb73c6f40589a74cc47bf42/igraph-0.11.6-cp39-abi3-win_amd64.whl", hash = "sha256:b80e69eb11faa9c57330a9ffebdde5808966efe1c1f638d4d4827ea04df7aca8", size = 1965492 },
 ]
 
 [[package]]
@@ -92,6 +117,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pycairo"
+version = "1.27.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/4a/42b26390181a7517718600fa7d98b951da20be982a50cd4afb3d46c2e603/pycairo-1.27.0.tar.gz", hash = "sha256:5cb21e7a00a2afcafea7f14390235be33497a2cce53a98a19389492a60628430", size = 661450 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/65/7664fe3d9928572b7804c651a99cfd6113338eee7436d5b25401c9382619/pycairo-1.27.0-cp312-cp312-win32.whl", hash = "sha256:e2239b9bb6c05edae5f3be97128e85147a155465e644f4d98ea0ceac7afc04ee", size = 750005 },
+    { url = "https://files.pythonhosted.org/packages/f4/bd/114597b9f79fbdb4eb0a4bf4aa54e70246d87f512a880e66a85c1e2ff407/pycairo-1.27.0-cp312-cp312-win_amd64.whl", hash = "sha256:27cb4d3a80e3b9990af552818515a8e466e0317063a6e61585533f1a86f1b7d5", size = 844100 },
+    { url = "https://files.pythonhosted.org/packages/93/76/35d2feef50584cb00d2b4d2215337b0bc765508f8856735a41bfedcb4699/pycairo-1.27.0-cp313-cp313-win32.whl", hash = "sha256:01505c138a313df2469f812405963532fc2511fb9bca9bdc8e0ab94c55d1ced8", size = 750001 },
+    { url = "https://files.pythonhosted.org/packages/9c/e7/92d6e57deee53229bb8b3f7df6d02c503585be7bdd69cb9e54f34aab089b/pycairo-1.27.0-cp313-cp313-win_amd64.whl", hash = "sha256:b0349d744c068b6644ae23da6ada111c8a8a7e323b56cbce3707cba5bdb474cc", size = 844102 },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -139,6 +176,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/0f/25911a9f080464c59fab9027482f822b86bf0608957a5fcc6eaac85aa515/PyYAML-6.0.2-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:68ccc6023a3400877818152ad9a1033e3db8625d899c72eacb5a668902e4d652", size = 751597 },
     { url = "https://files.pythonhosted.org/packages/14/0d/e2c3b43bbce3cf6bd97c840b46088a3031085179e596d4929729d8d68270/PyYAML-6.0.2-cp313-cp313-win32.whl", hash = "sha256:bc2fa7c6b47d6bc618dd7fb02ef6fdedb1090ec036abab80d4681424b84c1183", size = 140527 },
     { url = "https://files.pythonhosted.org/packages/fa/de/02b54f42487e3d3c6efb3f89428677074ca7bf43aae402517bc7cca949f3/PyYAML-6.0.2-cp313-cp313-win_amd64.whl", hash = "sha256:8388ee1976c416731879ac16da0aff3f63b286ffdd57cdeb95f3f2e085687563", size = 156446 },
+]
+
+[[package]]
+name = "texttable"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/dc/0aff23d6036a4d3bf4f1d8c8204c5c79c4437e25e0ae94ffe4bbb55ee3c2/texttable-1.7.0.tar.gz", hash = "sha256:2d2068fb55115807d3ac77a4ca68fa48803e84ebb0ee2340f858107a36522638", size = 12831 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/24/99/4772b8e00a136f3e01236de33b0efda31ee7077203ba5967fcc76da94d65/texttable-1.7.0-py2.py3-none-any.whl", hash = "sha256:72227d592c82b3d7f672731ae73e4d1f88cd8e2ef5b075a7a7f01a23a3743917", size = 10768 },
 ]
 
 [[package]]
