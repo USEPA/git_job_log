@@ -1,19 +1,19 @@
 """Plot job dependencies and status."""
-from itertools import chain
 
-import igraph
+import networkx as nx
+import pygraphviz as pgv
 
 
 def make_graph(depends):
     """Make igraph graph from edge list."""
-    graph = igraph.Graph(directed=True)
-    graph.add_vertices(list(set(chain.from_iterable(depends))))
-    graph.add_edges(depends)
+    graph = nx.DiGraph(directed=True)
+    graph.add_edges_from(depends)
     return graph
 
 
 def make_plot(graph, out_path):
     """Make SVG plot of graph."""
-    layout = graph.layout("tree")
-    graph.vs["label"] = graph.vs["name"]
-    igraph.plot(graph, out_path, layout=layout, margin=150, bbox=(600,) * 2)
+    dag = pgv.AGraph()
+    for edge in graph.edges:
+        dag.add_edge(edge)
+    dag.draw(out_path, prog="dot")

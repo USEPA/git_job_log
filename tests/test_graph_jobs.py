@@ -17,11 +17,11 @@ VERTICES = list(set(chain.from_iterable(DEPENDS)))
 
 def test_make_graph():
     graph = graph_jobs.make_graph(DEPENDS)
-    assert min(graph.degree(mode="in")) == 0
-    assert max(graph.degree(mode="in")) == 1
-    assert min(graph.degree(mode="out")) == 0
-    assert max(graph.degree(mode="out")) == 2
-    assert len(graph.vs) == len(VERTICES)
+    assert min(i[1] for i in graph.in_degree()) == 0
+    assert max(i[1] for i in graph.in_degree()) == 1
+    assert min(i[1] for i in graph.out_degree()) == 0
+    assert max(i[1] for i in graph.out_degree()) == 2
+    assert len(graph) == len(VERTICES)
 
 
 def test_graph_jobs(random_remote):
@@ -35,7 +35,6 @@ def test_graph_jobs(random_remote):
     out_path = random_remote / "test.svg"
     graph_jobs.make_plot(graph, out_path)
     graph_jobs.make_plot(graph, "test2.svg")
-    graph.write_svg("test3.svg", layout=layout)
     assert out_path.exists()
     text = out_path.read_text()
     print(VERTICES)
