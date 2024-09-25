@@ -43,3 +43,11 @@ differ.
 
 See the [src/git_job_log/cli.py](src/git_job_log/cli.py) doc. string for simple CLI
 docs.
+
+## Dev. notes
+
+    GIT_JOB_LOG_SHOW_TESTS=1 uv run pytest -vv
+    
+will run tests and leave `test*.svg` files in current directory for inspection,
+omit `GIT_JOB_LOG_SHOW_TESTS` for no post test files.
+
