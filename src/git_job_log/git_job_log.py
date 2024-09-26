@@ -136,7 +136,7 @@ class GitJobLog:
             if job_file.exists() and job_file.read_text() == data:
                 # Append this to make the file different, git supports empty commits but
                 # not associating unchanged files with them.
-                use_data += f"### UPDATED: {updated}"
+                use_data += f"\n### UPDATED: {updated}"
             job_file.write_text(use_data)
         self._do_cmd(["git", "-C", self.local, "add", "-A"])
         job_list = ", ".join(jobs)
