@@ -2,7 +2,9 @@
 import time
 
 import pygraphviz as pgv
+
 from git_job_log import LastRun
+from git_job_log.util import job_match
 
 FILL_GOOD = "#88aaff"
 FILL_BAD = "orange"
@@ -10,11 +12,13 @@ FILL_BAD = "orange"
 
 def make_graph(depends):
     """Make graph graph from edge list."""
-    graph = pgv.AGraph()
+    graph = pgv.AGraph(directed=True)
     for edge in depends:
         graph.add_edge(edge)
     graph.graph_attr["label"] = time.asctime()
-    graph.edge_attr["dir"] = "forward"
+    graph.graph_attr["rankdir"] = "LR"
+    graph.graph_attr["concentrate"] = "true"
+    # graph.edge_attr["dir"] = "forward"
     # graph.node_attr["fontname"] = "sans-serif"
     return graph
 
@@ -54,12 +58,21 @@ def label(node_id: str, max_len: int = 16) -> str:
     return "\\n".join("".join(i) for i in texts)
 
 
-def make_plot(graph, out_path, with_key=True):
+def make_plot(graph, out_path, with_key=True, description: dict | None = None) -> None:
     """Make SVG plot of graph."""
+    if description is None:
+        description = {}
     for node_id in graph:
         node = graph.get_node(node_id)
         node.attr["label"] = label(node_id)
-        node.attr["tooltip"] = f"{node_id}\\nlast_ran: {node.attr['run_at']}"
+        describe = "\\n".join(
+            description[k] for k in description if job_match(node_id, k)
+        )
+        if describe:
+            describe = f"\\n{describe}"
+        node.attr[
+            "tooltip"
+        ] = f"{node_id}{describe}\\nlast_ran: {node.attr['run_at']}"
     if with_key:
         add_key(graph)
     graph.draw(out_path, prog="dot")
