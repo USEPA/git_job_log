@@ -1,5 +1,6 @@
 """Plot job dependencies and status."""
 import time
+from collections import defaultdict
 
 import pygraphviz as pgv
 
@@ -20,6 +21,8 @@ def make_graph(depends):
     graph.graph_attr["concentrate"] = "true"
     # graph.edge_attr["dir"] = "forward"
     # graph.node_attr["fontname"] = "sans-serif"
+    graph._label = defaultdict(list)
+    graph._description = defaultdict(list)
     return graph
 
 
@@ -58,24 +61,68 @@ def label(node_id: str, max_len: int = 16) -> str:
     return "\\n".join("".join(i) for i in texts)
 
 
-def make_plot(graph, out_path, with_key=True, description: dict | None = None) -> None:
-    """Make SVG plot of graph."""
+def annotate_graph(graph, description: dict | None = None) -> None:
+    """Add labels and tooltips to graph."""
     if description is None:
         description = {}
     for node_id in graph:
-        node = graph.get_node(node_id)
-        node.attr["label"] = label(node_id)
-        describe = "\\n".join(
+        graph._label[node_id] = [node_id]
+        graph._description[node_id] = [
             description[k] for k in description if job_match(node_id, k)
-        )
-        if describe:
-            describe = f"\\n{describe}"
-        node.attr[
-            "tooltip"
-        ] = f"{node_id}{describe}\\nlast_ran: {node.attr['run_at']}"
+        ]
+
+
+def make_plot(graph, out_path, with_key=True) -> None:
+    """Make a plot of graph.
+
+    Format depends on out_path extension.
+    """
+    for node_id in graph:
+        node = graph.get_node(node_id)
+        labels = graph._label[node_id]
+        if not labels:
+            continue  # A node in the key
+        node.attr["label"] = label(labels[0])
+        if len(labels) > 1:
+            node.attr["label"] += f"\\n+{len(labels) - 1}"
+        description = ["\\n".join(sorted(labels))]
+        notes = "\\n".join(sorted(set(graph._description[node_id])))
+        if notes:
+            description.append(notes)
+        description.append("Last run: " + (node.attr.get("run_at") or "NEVER"))
+        node.attr["tooltip"] = "\\n".join(description)
     if with_key:
         add_key(graph)
     graph.draw(out_path, prog="dot")
+
+
+def squash_graph(graph):
+    """Collapse nodes that are only alternate paths between two other nodes."""
+    for node in graph.iternodes():
+        child_destinations = {
+            k: set(graph.successors(k)) for k in graph.successors(node)
+        }
+        # Children with only one destination.
+        child_destinations = {
+            k: v for k, v in child_destinations.items() if len(v) == 1
+        }
+        out_paths = defaultdict(set)
+        for child, destinations in child_destinations.items():
+            out_paths[next(iter(destinations))].add(child)
+        # Destinations reached by multiple single-destination children.
+        out_paths = {k: v for k, v in out_paths.items() if len(v) > 1}
+        for parallel_paths in out_paths.values():
+            paths = list(parallel_paths)
+            keep = paths.pop(0)
+            for child in paths:
+                merge_nodes(graph, keep, child)
+                graph.remove_node(child)
+
+
+def merge_nodes(graph, keep_id, child_id):
+    """Merge child into keep."""
+    graph._label[keep_id].extend(graph._label[child_id])
+    graph._description[keep_id].extend(graph._description[child_id])
 
 
 def recurse_status(graph, head, job_ran, ok):
