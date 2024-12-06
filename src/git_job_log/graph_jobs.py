@@ -11,16 +11,45 @@ FILL_GOOD = "#88aaff"
 FILL_BAD = "orange"
 
 
+# list of distinct colors from https://sashamaps.net/docs/resources/20-colors/
+# the distinctness and appeal decreases as you go down the list, so zip()ing with
+# a fixed order list of fp_ids is probably fine.
+COLORS = [
+    "#e6194B",  # Red
+    "#3cb44b",  # Green
+    "#ffe119",  # Yellow
+    "#4363d8",  # Blue
+    "#f58231",  # Orange
+    "#911eb4",  # Purple
+    "#42d4f4",  # Cyan
+    "#f032e6",  # Magenta
+    "#bfef45",  # Lime
+    "#fabed4",  # Pink
+    "#469990",  # Teal
+    "#dcbeff",  # Lavender
+    "#9A6324",  # Brown
+    # "#fffac8",  # Beige
+    "#800000",  # Maroon
+    "#aaffc3",  # Mint
+    "#808000",  # Olive
+    # "#ffd8b1",  # Apricot
+    "#000075",  # Navy
+    "#a9a9a9",  # Grey
+]
+
+
 def make_graph(depends):
     """Make graph graph from edge list."""
     graph = pgv.AGraph(directed=True)
-    for edge in depends:
-        graph.add_edge(edge)
+    for edge_i, edge in enumerate(depends):
+        # Tried making the edge colors more stable by hashing the edge, but
+        # this is better for not re-using the same colors in the same area of
+        # the graph.
+        graph.add_edge(edge, color=COLORS[edge_i % len(COLORS)], penwidth=3)
     graph.graph_attr["label"] = time.asctime()
     graph.graph_attr["rankdir"] = "LR"
-    graph.graph_attr["concentrate"] = "true"
-    # graph.edge_attr["dir"] = "forward"
-    # graph.node_attr["fontname"] = "sans-serif"
+    graph.graph_attr["concentrate"] = "true"  # Not working?  Even without color.
+    graph.node_attr["fontname"] = "sans-serif"
     graph._label = defaultdict(list)
     graph._description = defaultdict(list)
     return graph
