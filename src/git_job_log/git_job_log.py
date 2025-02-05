@@ -28,9 +28,7 @@ GIT_RUN_LOG_REPO needs to be set and can be set in .env
 import hashlib
 import os
 import subprocess
-import time
 from datetime import datetime
-from io import StringIO
 from pathlib import Path
 from typing import NamedTuple
 
@@ -39,6 +37,7 @@ from dotenv import load_dotenv
 
 GIT_JOB_LOG_DATA_DIR = ".git_job_log"
 GIT_JOB_LOG_RUN_FILE = "RUN"
+GIT_JOB_LOG_BRANCH = "job_logs"
 
 
 JobType = str
@@ -99,12 +98,14 @@ class GitJobLog:
     def pull(self) -> None:
         """Pull latest data."""
         self._do_cmd(["git", "-C", self.local, "pull"])
-        self._do_cmd(["git", "-C", self.local, "reset", "--hard", "origin/main"])
+        self._do_cmd(
+            ["git", "-C", self.local, "reset", "--hard", f"origin/{GIT_JOB_LOG_BRANCH}"]
+        )
 
     def local_path(self) -> Path:
         """Path to local checkout of remote."""
         subpath = hashlib.sha256(str(self.remote).encode("utf8")).hexdigest()
-        return Path(f"~/{GIT_JOB_LOG_DATA_DIR}/repos/{subpath}").expanduser().resolve()
+        return Path(f"{GIT_JOB_LOG_DATA_DIR}/repos/{subpath}").expanduser().resolve()
 
     def get_or_create_local(self) -> Path:
         """Create local checkout of remote if needed."""
@@ -112,8 +113,10 @@ class GitJobLog:
         if not self.local.exists():
             self.local.mkdir(parents=True, exist_ok=True)
             self._do_cmd(["git", "clone", self.remote, self.local])
-            self._do_cmd(["git", "-C", self.local, "checkout", "-b", "main"])
-            self._do_cmd(["git", "-C", self.local, "checkout", "main"])
+            self._do_cmd(
+                ["git", "-C", self.local, "checkout", "-b", GIT_JOB_LOG_BRANCH]
+            )
+            self._do_cmd(["git", "-C", self.local, "checkout", GIT_JOB_LOG_BRANCH])
         return self.local
 
     def log_run(self, jobs: list[JobType], data: dict | str | None = None) -> None:
@@ -128,8 +131,8 @@ class GitJobLog:
             except yaml.representer.RepresenterError:
                 data = str(data)
         old_last_runs = self.last_runs()
-        for job in jobs:
-            job = job.strip("/")
+        for job_i in jobs:
+            job = job_i.strip("/")
             (self.local / job).mkdir(parents=True, exist_ok=True)
             job_file = self.local / job / GIT_JOB_LOG_RUN_FILE
             use_data = data
@@ -142,20 +145,28 @@ class GitJobLog:
         job_list = ", ".join(jobs)
         self._do_cmd(["git", "-C", self.local, "commit", "-m", f"ran: {job_list}"])
         self._do_cmd(
-            ["git", "-C", self.local, "push", "--set-upstream", "origin", "main"]
+            [
+                "git",
+                "-C",
+                self.local,
+                "push",
+                "--set-upstream",
+                "origin",
+                GIT_JOB_LOG_BRANCH,
+            ]
         )
         last_runs = self.last_runs()
-        # Check new commits are in repo. - this is the core function so need to fail if not
+        # Check new commits are in repo. - this is the core function so need to
+        # fail if not
         errors = []
         for job in jobs:
             if job not in last_runs:
                 errors.append(f"MISSING: {job}")
-            else:
-                if (
-                    job in old_last_runs
-                    and last_runs[job].timestamp == old_last_runs[job].timestamp
-                ):
-                    errors.append(f"NO_UPDATE: {job}")
+            elif (
+                job in old_last_runs
+                and last_runs[job].timestamp == old_last_runs[job].timestamp
+            ):
+                errors.append(f"NO_UPDATE: {job}")
         if errors:
             raise Exception("LOGGING JOB(S) FAILED:\n" + "\n".join(errors))
 
@@ -189,8 +200,7 @@ class GitJobLog:
         return LastRun(timestamp=datetime.fromisoformat(last), data=data)
 
     def last_runs(self) -> dict:
-        """
-        List last run time for all jobs.
+        """List last run time for all jobs.
 
         git ls-tree -r --name-only HEAD | \
             xargs -IF git --no-pager log -1 --format='%cI F' F
