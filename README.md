@@ -29,15 +29,20 @@ returns a `{job_id0: RunLog, job_id1: RunLog, ...}` mapping for all jobs.
 
 `GIT_RUN_LOG_REPO` needs to be set and can be set in .env
 
-The expectation is that only the `main` branch is used, using other branches or
+The expectation is that only the `job_logs` branch is used, using other branches or
 making a different branch the default on the remote may have undefined effects.
+Git Job Log uses `reset --hard` to sync. with the remote repo., so using the default
+`main` branch is slightly less safe than the dedicated `job_logs` branch.
 
 Although the `data` parameter allows storing info. about a run, currently
 there's not concept of run "state" - the intent is to log only successful runs.
 
 (*) To handle repeated logging (commits) of a job ID without changing data, the
-text `### UPDATE: <date>` will be added to the end of RUN files that don't
-differ.
+text `### UPDATE: <datetime>` will be added to the end of RUN files that don't
+differ.  It is not enough to use `--allow-empty` as that doesn't identify
+the "files" (jobs) that have been run.  This means that every second log message
+will contain `### UPDATE: <datetime>`, intervening messages "differ" simply by
+being blank.
 
 ## CLI
 
