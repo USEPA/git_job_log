@@ -56,7 +56,7 @@ class GitJobLog:
     def __init__(
         self,
         remote: Path | None = None,  # repo. URL +/- token or None for auto-discovery
-        silent: bool = True,  # Don't report noisy git msg.s
+        silent: bool = not os.environ.get("GIT_JOB_LOG_DEBUG", "").strip(),
     ):
         """Bind to a repository."""
         self.silent = silent
@@ -65,6 +65,7 @@ class GitJobLog:
         if remote is None:
             remote = self._find_url()
         self.remote = remote
+        self.set_git_identity()
         self.local = self.get_or_create_local()
 
     @staticmethod
@@ -88,6 +89,7 @@ class GitJobLog:
         """Run a command, show feedback if not supressed."""
         if isinstance(cmd, str):
             cmd = cmd.split()
+        cmd = [str(i) for i in cmd]
         if not self.silent:
             print(cmd)
         proc = subprocess.run(cmd, capture_output=True, check=False)  # noqa:S603
@@ -107,16 +109,28 @@ class GitJobLog:
         subpath = hashlib.sha256(str(self.remote).encode("utf8")).hexdigest()
         return Path(f"{GIT_JOB_LOG_DATA_DIR}/repos/{subpath}").expanduser().resolve()
 
+    def set_git_identity(self) -> None:
+        """Set git identity for this process."""
+        if Path("/.dockerenv").exists():
+            self._do_cmd("git config --global user.email user@docker.container")
+            self._do_cmd("git config --global user.name Docker")
+
     def get_or_create_local(self) -> Path:
         """Create local checkout of remote if needed."""
         self.local = self.local_path()
         if not self.local.exists():
             self.local.mkdir(parents=True, exist_ok=True)
             self._do_cmd(["git", "clone", self.remote, self.local])
+            if not (self.local / ".git" / "config").exists():
+                raise Exception(f"Failed to clone {self.remote} to {self.local}")
             self._do_cmd(
                 ["git", "-C", self.local, "checkout", "-b", GIT_JOB_LOG_BRANCH]
             )
             self._do_cmd(["git", "-C", self.local, "checkout", GIT_JOB_LOG_BRANCH])
+        if not (self.local / ".git" / "config").exists():
+            raise Exception(
+                f"Failed to sync. {self.remote} to {self.local}, delete latter perhaps?"
+            )
         return self.local
 
     def log_run(self, jobs: list[JobType], data: dict | str | None = None) -> None:
@@ -143,7 +157,10 @@ class GitJobLog:
             job_file.write_text(use_data)
         self._do_cmd(["git", "-C", self.local, "add", "-A"])
         job_list = ", ".join(jobs)
-        self._do_cmd(["git", "-C", self.local, "commit", "-m", f"ran: {job_list}"])
+        comment = f", {data[:80]}" if isinstance(data, str) else ""
+        self._do_cmd(
+            ["git", "-C", self.local, "commit", "-m", f"ran: {job_list}{comment}"]
+        )
         self._do_cmd(
             [
                 "git",

@@ -37,12 +37,14 @@ Git Job Log uses `reset --hard` to sync. with the remote repo., so using the def
 Although the `data` parameter allows storing info. about a run, currently
 there's not concept of run "state" - the intent is to log only successful runs.
 
+Set `GIT_JOB_LOG_DEBUG` to see git commands being run.
+
 (*) To handle repeated logging (commits) of a job ID without changing data, the
 text `### UPDATE: <datetime>` will be added to the end of RUN files that don't
-differ.  It is not enough to use `--allow-empty` as that doesn't identify
-the "files" (jobs) that have been run.  This means that every second log message
-will contain `### UPDATE: <datetime>`, intervening messages "differ" simply by
-being blank.
+differ.  It is not enough to use `--allow-empty` as that doesn't identify the
+"files" (jobs) that have been run.  For blank log messages this means that
+every second log message will contain `### UPDATE: <datetime>`, intervening
+messages "differ" simply by being blank.
 
 ## CLI
 
