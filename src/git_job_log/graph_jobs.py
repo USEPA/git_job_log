@@ -91,11 +91,14 @@ def label(node_id: str, max_len: int = 16) -> str:
 
 
 def annotate_graph(graph, description: dict | None = None) -> None:
-    """Add labels and tooltips to graph."""
+    """Add labels and tooltips to graph.
+
+    Uses job_match() to apply applicable descriptions.
+    """
     if description is None:
         description = {}
     for node_id in graph:
-        graph._label[node_id] = [node_id]
+        graph._label[node_id] = [node_id]  # List of lines for tooltip.
         graph._description[node_id] = [
             description[k] for k in description if job_match(node_id, k)
         ]

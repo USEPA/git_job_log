@@ -161,6 +161,7 @@ class GitJobLog:
         self._do_cmd(
             ["git", "-C", self.local, "commit", "-m", f"ran: {job_list}{comment}"]
         )
+        self._do_cmd(["git", "-C", self.local, "commit", "--amend"])
         self._do_cmd(
             [
                 "git",
