@@ -8,6 +8,9 @@ from itertools import chain
 from git_job_log import GitJobLog, graph_jobs
 from git_job_log.graph_jobs import FILL_BAD, FILL_GOOD
 
+# ruff: noqa: PLR2004 - magic values are expected results
+# ruff: noqa: S311 - not using random for cryptography
+
 DEPENDS = [
     ("home/yard/season/spring", "home/yard/lawn/get_gas"),
     ("home/yard/lawn/get_gas", "home/yard/lawn/mow"),
@@ -22,6 +25,7 @@ VERTICES = list(set(chain.from_iterable(DEPENDS)))
 
 
 def test_make_graph():
+    """Simple graph tests."""
     graph = graph_jobs.make_graph(DEPENDS)
     assert min(graph.in_degree()) == 0
     assert max(graph.in_degree()) == 1
@@ -55,14 +59,13 @@ def test_graph_jobs(random_remote):
     graph = graph_jobs.make_graph(DEPENDS)
     out_path = random_remote / "test.svg"
     graph_jobs.make_plot(graph, out_path, with_key=False)
+    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
+        graph_jobs.make_plot(graph, "test0_basic_graph.svg", with_key=False)
     assert out_path.exists()
     text = out_path.read_text()
     print(VERTICES)
     # Note the full text (node_id) occurs in the <title/> element, not the label.
     assert all([i in text for i in VERTICES])
-
-    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
-        graph_jobs.make_plot(graph, "test0_basic_graph.svg")
 
 
 def test_graph_deps_all_done(random_remote):
@@ -71,33 +74,33 @@ def test_graph_deps_all_done(random_remote):
     gjl.log_run(VERTICES)
     graph = graph_jobs.make_graph(DEPENDS)
     graph_jobs.add_status(graph, gjl)
+    graph_jobs.annotate_graph(graph)
     out_path = random_remote / "test.svg"
     graph_jobs.make_plot(graph, out_path, with_key=False)
+    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
+        graph_jobs.make_plot(graph, "test1_all_done.svg", with_key=False)
     assert out_path.exists()
     text = out_path.read_text()
     assert text.count("NEVER") == 0
     assert text.count(FILL_BAD) == 0
     assert text.count(FILL_GOOD) == len(VERTICES)
 
-    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
-        graph_jobs.make_plot(graph, "test1_all_done.svg")
-
 
 def test_graph_deps_none_done(random_remote):
-    """Test with all jobs run at same time."""
+    """Test with all jobs not run."""
     gjl = GitJobLog(random_remote)
     graph = graph_jobs.make_graph(DEPENDS)
     graph_jobs.add_status(graph, gjl)
+    graph_jobs.annotate_graph(graph)
     out_path = random_remote / "test.svg"
     graph_jobs.make_plot(graph, out_path, with_key=False)
+    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
+        graph_jobs.make_plot(graph, "test2_none_done.svg", with_key=False)
     assert out_path.exists()
     text = out_path.read_text()
     assert text.count("NEVER") == len(VERTICES)
     assert text.count(FILL_BAD) == len(VERTICES)
     assert text.count(FILL_GOOD) == 0
-
-    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
-        graph_jobs.make_plot(graph, "test2_none_done.svg")
 
 
 def test_graph_deps_some_done(random_remote):
@@ -106,16 +109,16 @@ def test_graph_deps_some_done(random_remote):
     gjl.log_run(i for i in VERTICES if i != "home/yard/lawn/get_gas")
     graph = graph_jobs.make_graph(DEPENDS)
     graph_jobs.add_status(graph, gjl)
+    graph_jobs.annotate_graph(graph)
     out_path = random_remote / "test.svg"
     graph_jobs.make_plot(graph, out_path, with_key=False)
+    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
+        graph_jobs.make_plot(graph, "test3_no_get_gas.svg")
     assert out_path.exists()
     text = out_path.read_text()
     assert text.count("NEVER") == 1  # "home/yard/lawn/get_gas"
     assert text.count(FILL_BAD) == 5  # above plus its four descendants
     assert text.count(FILL_GOOD) == len(VERTICES) - 5
-
-    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
-        graph_jobs.make_plot(graph, "test3_no_get_gas.svg")
 
 
 def test_graph_deps_updated(random_remote):
@@ -126,16 +129,16 @@ def test_graph_deps_updated(random_remote):
     gjl.log_run(["home/yard/lawn/get_gas"])
     graph = graph_jobs.make_graph(DEPENDS)
     graph_jobs.add_status(graph, gjl)
+    graph_jobs.annotate_graph(graph)
     out_path = random_remote / "test.svg"
     graph_jobs.make_plot(graph, out_path, with_key=False)
+    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
+        graph_jobs.make_plot(graph, "test4_updated_get_gas.svg", with_key=False)
     assert out_path.exists()
     text = out_path.read_text()
     assert text.count("NEVER") == 0
     assert text.count(FILL_BAD) == 4  # "home/yard/lawn/get_gas"'s four descendants
     assert text.count(FILL_GOOD) == len(VERTICES) - 4
-
-    if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
-        graph_jobs.make_plot(graph, "test4_updated_get_gas.svg")
 
 
 def build_random_tree(
@@ -181,9 +184,9 @@ def test_graph_large(random_remote):
     vertices = [i for i in vertices if int(i) < 100 or random.uniform(0, 1) < 0.95]
     gjl.log_run(vertices)
     graph_jobs.add_status(graph, gjl)
+    graph_jobs.annotate_graph(graph)
     out_path = random_remote / "test.svg"
     graph_jobs.make_plot(graph, out_path, with_key=False)
-    assert out_path.exists()
-
     if os.environ.get("GIT_JOB_LOG_SHOW_TESTS"):
-        graph_jobs.make_plot(graph, "test5_large.svg")
+        graph_jobs.make_plot(graph, "test5_large.svg", with_key=False)
+    assert out_path.exists()

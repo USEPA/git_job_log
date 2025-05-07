@@ -9,15 +9,15 @@ from pathlib import Path
 import pytest
 
 from git_job_log import GitJobLog
-from git_job_log.git_job_log import GIT_JOB_LOG_RUN_FILE
+from git_job_log.git_job_log import GIT_JOB_LOG_DATA_DIR, GIT_JOB_LOG_RUN_FILE
 
 
 def test_local_path(random_remote):
     """Test creation of local checkout."""
     subpath = hashlib.sha256(str(random_remote).encode("utf8")).hexdigest()
-    path = Path(f"~/.git_job_log/repos/{subpath}").expanduser().resolve()
+    path = Path(f"{GIT_JOB_LOG_DATA_DIR}/repos/{subpath}").expanduser().resolve()
     assert not path.exists()
-    gjl = GitJobLog(random_remote)
+    gjl = GitJobLog(random_remote, silent=False)
     assert path.exists()
 
     shutil.rmtree(gjl.local)
@@ -71,6 +71,7 @@ def test_last_runs(random_remote):
 
     shutil.rmtree(gjl.local)
 
+
 def test_multi(random_remote):
     """Test reporting several jobs at once."""
     gjl = GitJobLog(random_remote)
@@ -86,6 +87,7 @@ def test_multi(random_remote):
     assert len(job_ran) == 3
 
     shutil.rmtree(gjl.local)
+
 
 def test_repeated(random_remote):
     """Test repeated reporting generates new commits."""
