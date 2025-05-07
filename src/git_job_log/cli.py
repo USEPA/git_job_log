@@ -51,6 +51,12 @@ def make_parser() -> argparse.ArgumentParser:
         default=False,
         help="Show git commands and responses.",
     )
+    parser.add_argument(
+        "--edit",
+        action="store_true",
+        default=False,
+        help="Allow user to edit commit log.",
+    )
     return parser
 
 
@@ -64,7 +70,7 @@ def list_last_runs(opt):
 def log_run(opt):
     """Log a successful run of the job(s) listed on the commandline."""
     gjl = _build_GitJobLog(opt)
-    gjl.log_run(opt.job)
+    gjl.log_run(opt.job, edit=opt.edit)
 
 
 DISPATCH = {

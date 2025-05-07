@@ -85,17 +85,18 @@ class GitJobLog:
 
         raise Exception("Could not find .env file for GIT_JOB_LOG_REPO")
 
-    def _do_cmd(self, cmd: str | list[str | Path]) -> str:
+    def _do_cmd(self, cmd: str | list[str | Path], capture_output: bool = True) -> str:
         """Run a command, show feedback if not supressed."""
         if isinstance(cmd, str):
             cmd = cmd.split()
         cmd = [str(i) for i in cmd]
         if not self.silent:
             print(cmd)
-        proc = subprocess.run(cmd, capture_output=True, check=False)  # noqa:S603
-        if proc.stderr and not self.silent:
-            print(proc.stderr.decode("utf8"))
-        return proc.stdout.decode("utf8")
+        proc = subprocess.run(cmd, capture_output=capture_output, check=False)  # noqa:S603
+        if capture_output:
+            if proc.stderr and not self.silent:
+                print(proc.stderr.decode("utf8"))
+            return proc.stdout.decode("utf8")
 
     def pull(self) -> None:
         """Pull latest data."""
@@ -133,7 +134,9 @@ class GitJobLog:
             )
         return self.local
 
-    def log_run(self, jobs: list[JobType], data: dict | str | None = None) -> None:
+    def log_run(
+        self, jobs: list[JobType], data: dict | str | None = None, edit: bool = False
+    ) -> None:
         """Log running of listed jobs."""
         self.pull()
         updated = datetime.now()
@@ -157,11 +160,14 @@ class GitJobLog:
             job_file.write_text(use_data)
         self._do_cmd(["git", "-C", self.local, "add", "-A"])
         job_list = ", ".join(jobs)
-        comment = f", {data[:80]}" if isinstance(data, str) else ""
+        comment = f", {data[:80]}" if isinstance(data, str) and data.strip() else ""
         self._do_cmd(
             ["git", "-C", self.local, "commit", "-m", f"ran: {job_list}{comment}"]
         )
-        self._do_cmd(["git", "-C", self.local, "commit", "--amend"])
+        if edit:
+            self._do_cmd(
+                ["git", "-C", self.local, "commit", "--amend"], capture_output=False
+            )
         self._do_cmd(
             [
                 "git",
