@@ -128,6 +128,9 @@ class GitJobLog:
                 ["git", "-C", self.local, "checkout", "-b", GIT_JOB_LOG_BRANCH]
             )
             self._do_cmd(["git", "-C", self.local, "checkout", GIT_JOB_LOG_BRANCH])
+        self._do_cmd(
+            ["git", "config", "--global", "--add", "safe.directory", self.local]
+        )
         if not (self.local / ".git" / "config").exists():
             raise Exception(
                 f"Failed to sync. {self.remote} to {self.local}, delete latter perhaps?"
