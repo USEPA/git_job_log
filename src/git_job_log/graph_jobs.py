@@ -159,46 +159,46 @@ def merge_nodes(graph, keep_id, child_id):
 
 def recurse_status(graph, status, head, job_ran, ok):
     """Recursively set status of jobs."""
-    graph.get_node(head).attr["style"] = "filled"
-    graph.get_node(head).attr["run_at"] = (
-        job_ran[head].timestamp if job_ran[head].timestamp else "NEVER"
-    )
-    status[head] = ok
-
     if not ok:
+        status[head] = ok
         graph.get_node(head).attr["fillcolor"] = FILL_BAD
-        for child in graph.out_neighbors(head):
-            recurse_status(graph, status, child, job_ran, ok)
-        return
-
     for child in graph.out_neighbors(head):
-        ok = (
-            job_ran[head].timestamp is not None
+        child_ok = (
+            ok
+            and job_ran[head].timestamp is not None
             and job_ran[child].timestamp is not None
             and job_ran[child].timestamp >= job_ran[head].timestamp
         )
-        recurse_status(graph, status, child, job_ran, ok)
+        recurse_status(graph, status, child, job_ran, child_ok)
 
 
 def add_status(graph, gjl):
     """Add up to dateness.
 
-    This also returns a job ID -> status mapping that is not really a visualization
-    concern like everything else in this module, but this is the module that understands
-    graphs and inherited out-of-dateness.
+    This also returns a job ID -> status mapping that is not really a
+    visualization concern like everything else in this module, but this is the
+    module that understands graphs and inherited out-of-dateness.
     """
     job_ran = gjl.last_runs()
     for job in graph:
         if job not in job_ran:
             job_ran[job] = LastRun(timestamp=None, data=None)
 
+    # Set all nodes good, then trace inherited out of dateness across the
+    # graph, to avoid setting a node out of date then reaching it by another
+    # route and setting it ok.
+    status = {}
     for node_id in graph:
+        status[node_id] = True
         node = graph.get_node(node_id)
         node.attr["fillcolor"] = FILL_GOOD
         node.attr["style"] = "filled"
+        node.attr["run_at"] = (
+            job_ran[node_id].timestamp if job_ran[node_id].timestamp else "NEVER"
+        )
+
     in_degree = dict(zip(graph, graph.in_degree()))
     heads = [i for i in graph if in_degree[i] == 0]
-    status = {}
     for head in heads:
         recurse_status(
             graph, status, head, job_ran, ok=job_ran[head].timestamp is not None

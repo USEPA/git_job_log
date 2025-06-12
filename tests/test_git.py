@@ -1,8 +1,9 @@
 """Tests for git connectivity."""
 import os
+import shutil
 import time
 from pathlib import Path
-import shutil
+
 from git_job_log import GitJobLog
 
 
@@ -16,10 +17,12 @@ def test_add_commit_auto(random_remote: Path) -> None:
     """Test we can connect and commit something - auto-discover URL."""
     pwd = os.getcwd()
     os.chdir(random_remote)
-    (random_remote / ".env").write_text(f"GIT_JOB_LOG_REPO = {random_remote}/repo")
-    gjl = GitJobLog()
-    _do_tests(gjl)
-    os.chdir(pwd)
+    try:
+        (random_remote / ".env").write_text(f"GIT_JOB_LOG_REPO = {random_remote}/repo")
+        gjl = GitJobLog()
+        _do_tests(gjl)
+    finally:
+        os.chdir(pwd)
 
 
 def _do_tests(gjl: GitJobLog) -> None:
